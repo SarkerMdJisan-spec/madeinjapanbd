@@ -89,7 +89,9 @@ h2{font-size:clamp(28px,4vw,42px);font-weight:800;margin-bottom:10px}
 .card:hover{transform:translateY(-4px)}
 .ph{height:200px;display:grid;place-items:center;font-size:72px;background:linear-gradient(160deg,#f3f5f9,#e1e5ed)}
 .ph.fig{background:linear-gradient(160deg,#e9e6ff,#cbc4ff)}
-.ph img{width:100%;height:100%;object-fit:cover}
+.ph img{width:100%;height:100%;object-fit:contain;background:#fff;padding:8px}
+.card .d{font-size:14px;color:#1b1a4acc}
+.bgv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.32}
 .card .in{padding:18px;display:flex;flex-direction:column;gap:8px;flex:1}
 .card h3{font-size:18px}.tag{font-size:13px;color:#1b1a4a99}
 .price{font:800 22px Sora;color:var(--ink)}
@@ -124,7 +126,9 @@ footer p{opacity:.8;margin-top:8px;font-size:14px}
   <button class="btn dark" id="cartBtn" aria-label="Open cart">Cart <b id="cc" class="cc">0</b></button>
 </div></nav>
 
-<header class="hero" id="top"><div class="wrap">
+<header class="hero" id="top">
+<video class="bgv" autoplay muted loop playsinline preload="metadata" aria-hidden="true"><source src="images/hero.mp4" type="video/mp4"></video>
+<div class="wrap">
   <div>
     <h1>Authentic Japanese <span class="swap" id="swap">cosmetics</span><br>delivered to Bangladesh.</h1>
     <p class="lead">Face wash, face cream, perfume, lipstick and anime figures, shipped directly from Japan. Buy one piece or a full wholesale order.</p>
@@ -220,13 +224,14 @@ const WHATSAPP = "817053666551";      // Japan +81, leading 0 removed (070-5366-
 const FB_PAGE  = "yourpagename";       // from facebook.com/yourpagename
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbxSP9enxFSjrqOSQioUZ3lfJMdmNSzJhWxJbvMcD0HvQI0RzDcTRuhkVG4tR0gUb5U3/exec";                  // paste your Google Apps Script web app URL here (see setup guide)
 const PRODUCTS = [
-  // cat: "cosmetics" or "figures" | img: "images/name.jpg" (leave "" for placeholder)
-  {name:"Face Wash",         cat:"cosmetics", note:"Gentle daily cleanser",   retail:1200, whole:950,  moq:12, img:"", icon:"🧴"},
-  {name:"Face Cream",       cat:"cosmetics", note:"Moisturizing care",       retail:1800, whole:1450, moq:12, img:"", icon:"🫙"},
-  {name:"Perfume Mist",     cat:"cosmetics", note:"Light floral scent",      retail:2500, whole:2000, moq:6,  img:"", icon:"🌸"},
-  {name:"Lipstick",         cat:"cosmetics", note:"Long-wear color",         retail:1500, whole:1200, moq:12, img:"", icon:"💄"},
-  {name:"Boxed Figure",     cat:"figures",   note:"Collectible PVC, boxed",  retail:4500, whole:3800, moq:3,  img:"", icon:"🎎"},
-  {name:"Mini Figure Set",  cat:"figures",   note:"Small display figures",   retail:1800, whole:1400, moq:6,  img:"", icon:"🧸"}
+  // price: write a number (e.g. 1200) or null to show "Coming soon". cat: "cosmetics" or "figures"
+  {name:"Hada Labo Shirojyun Whitening Lotion", cat:"cosmetics", note:"Medicated whitening toner", desc:"A hydrating Japanese lotion for bright, bouncy skin. Also helps prevent acne and rough skin.", retail:null, whole:null, moq:null, img:"images/hadalabo-shirojyun.webp", icon:"💧"},
+  {name:"Hada Labo Shirojyun Premium Lotion", cat:"cosmetics", note:"Penetrating whitening toner", desc:"Premium whitening lotion with serum-level care, made to target the source of dark spots.", retail:null, whole:null, moq:null, img:"images/hadalabo-shirojyun-premium.webp", icon:"💧"},
+  {name:"Fino Premium Touch Hair Oil Serum", cat:"cosmetics", note:"Airy Smooth, Shiseido", desc:"Penetrating beauty-serum hair oil for damaged ends. Light, smooth finish every day.", retail:null, whole:null, moq:null, img:"images/fino-hair-oil-serum.webp", icon:"✨"},
+  {name:"Tsubaki Premium Moist & Repair Shampoo", cat:"cosmetics", note:"Shiseido, pump bottle", desc:"Moisturizing and repairing shampoo for soft, smooth hair.", retail:null, whole:null, moq:null, img:"images/tsubaki-shampoo.webp", icon:"🧴"},
+  {name:"Fino Premium Touch Hair Mask", cat:"cosmetics", note:"Shiseido hair treatment", desc:"Deep-care hair mask that repairs dry, damaged hair for a silky feel.", retail:null, whole:null, moq:null, img:"images/fino-hair-mask.webp", icon:"🫙"},
+  {name:"Melano CC Deep Clear Enzyme Face Wash", cat:"cosmetics", note:"Rohto, vitamin C + enzyme", desc:"Enzyme cleansing face wash with vitamin C. Clears dirt and dullness for fresh skin.", retail:null, whole:null, moq:null, img:"images/melano-cc-enzyme-face-wash.webp", icon:"🧼"},
+  {name:"Melano CC Vitamin C Lotion", cat:"cosmetics", note:"Rohto, medicated toner", desc:"Medicated vitamin C lotion for acne prevention and pore care. Helps keep skin bright and prevent spots and freckles.", retail:null, whole:null, moq:null, img:"images/melano-cc-lotion.webp", icon:"🍊"}
 ];
 /* ============================ */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -236,11 +241,11 @@ let cat="all",mode="retail";
 function render(){
   $("#grid").innerHTML=PRODUCTS.map((p,ix)=>({p,ix})).filter(({p})=>cat=="all"||p.cat==cat).map(({p,ix})=>{
     const price=mode=="retail"?p.retail:p.whole;
-    const msg=`Hi! I want to order: ${p.name} (${mode}${mode=="wholesale"?", MOQ "+p.moq:""}). Price shown: ${price} BDT.`;
+    const msg=price==null?`Hi! I want to know the price of ${p.name} (${mode}).`:`Hi! I want to order: ${p.name} (${mode}${mode=="wholesale"?", MOQ "+p.moq:""}). Price shown: ${price} BDT.`;
     return `<article class="card"><div class="ph ${p.cat=="figures"?"fig":""}">${p.img?`<img src="${p.img}" alt="${p.name}" loading="lazy">`:p.icon}</div>
-    <div class="in"><h3>${p.name}</h3><div class="tag">${p.note}</div>
-    <div class="price">৳${price.toLocaleString()}<small>${mode=="wholesale"?"per piece, minimum "+p.moq+" pcs":"per piece"}</small></div>
-    <div class="ord"><button class="btn dark" data-add="${ix}">Add to cart</button><a class="btn wa" href="${wa(msg)}" target="_blank" rel="noopener">Ask</a></div></div></article>`}).join("");
+    <div class="in"><h3>${p.name}</h3><div class="tag">${p.note}</div><p class="d">${p.desc||""}</p>
+    <div class="price">${price==null?"Coming soon":"৳"+price.toLocaleString()}<small>${price==null?"Price will be announced":mode=="wholesale"?"per piece, minimum "+p.moq+" pcs":"per piece"}</small></div>
+    <div class="ord">${price==null?"":`<button class="btn dark" data-add="${ix}">Add to cart</button>`}<a class="btn wa" href="${wa(msg)}" target="_blank" rel="noopener">${price==null?"Ask price on WhatsApp":"Ask"}</a></div></div></article>`}).join("");
 }
 $("#tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;cat=b.dataset.c;$$("#tabs button").forEach(x=>x.setAttribute("aria-pressed",x==b));render()};
 $("#mode").onclick=e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;$$("#mode button").forEach(x=>x.setAttribute("aria-pressed",x==b));render()};
@@ -260,6 +265,7 @@ if(!matchMedia("(prefers-reduced-motion:reduce)").matches){
 
 
 render();
+{const v=$(".bgv");if(v&&matchMedia("(prefers-reduced-motion:reduce)").matches){v.removeAttribute("autoplay");v.pause()}}
 /* ===== cart ===== */
 const KEY="mjbd_cart",fmt=n=>"৳"+n.toLocaleString();
 let cart=[];try{cart=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){}
@@ -275,7 +281,7 @@ function draw(){
   $("#tot").textContent=$("#tot2").textContent=fmt(total());
   $("#goCk").disabled=!cart.length;
 }
-function add(i,m){const p=PRODUCTS[i],t=m||mode,price=t=="retail"?p.retail:p.whole,min=t=="retail"?1:p.moq;
+function add(i,m){const p=PRODUCTS[i];if(((m||mode)=="retail"?p.retail:p.whole)==null)return;const t=m||mode,price=t=="retail"?p.retail:p.whole,min=t=="retail"?1:p.moq;
   const l=cart.find(x=>x.i==i&&x.t==t);l?l.q++:cart.push({i,t,n:p.name,p:price,q:min,min});save();draw();step(1);openC()}
 document.addEventListener("click",e=>{
   const a=e.target.closest("[data-add]");if(a)return add(+a.dataset.add,a.dataset.m);
@@ -300,10 +306,10 @@ draw();
 (function(){
   const box=$("#slides"),dots=$("#dots");let i=0,timer;
   box.innerHTML=PRODUCTS.map((p,n)=>{
-    const msg=`Hi! I want to order: ${p.name} (retail). Price shown: ${p.retail} BDT.`;
+    const np=p.retail==null,msg=np?`Hi! I want to know the price of ${p.name}.`:`Hi! I want to order: ${p.name} (retail). Price shown: ${p.retail} BDT.`;
     return `<div class="slide${n?"":" on"}"><div class="ph ${p.cat=="figures"?"fig":""}">${p.img?`<img src="${p.img}" alt="${p.name}">`:p.icon}</div>
-    <div class="in"><div><h3>${p.name}</h3><div class="tag">${p.note}</div><div class="price">৳${p.retail.toLocaleString()}</div></div>
-    <button class="btn dark" data-add="${n}" data-m="retail">Add to cart</button></div></div>`}).join("");
+    <div class="in"><div><h3>${p.name}</h3><div class="tag">${p.note}</div><div class="price">${np?"Coming soon":"৳"+p.retail.toLocaleString()}</div></div>
+    ${np?`<a class="btn wa" href="${wa(msg)}" target="_blank" rel="noopener">Ask price</a>`:`<button class="btn dark" data-add="${n}" data-m="retail">Add to cart</button>`}</div></div>`}).join("");
   dots.innerHTML=PRODUCTS.map((p,n)=>`<button aria-label="Show ${p.name}" aria-current="${n==0}"></button>`).join("");
   const sl=[...box.children],db=[...dots.children];
   function go(n){sl[i].classList.remove("on");sl[i].classList.add("out");const o=sl[i];setTimeout(()=>o.classList.remove("out"),650);
